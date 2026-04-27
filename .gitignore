@@ -1,0 +1,27 @@
+# Build directories
+build/
+bin/
+lib/
+
+# IDE and System files
+.vscode/
+.idea/
+.DS_Store
+.gemini/
+
+# Project specifics
+.third_party/
+third_party/
+plans/
+tests/input.mp3
+test_input.mp3
+
+# Binaries and Objects
+*.o
+*.a
+*.so
+*.d
+hush_remover
+hush_Logger_tests
+hush_AudioProcessor_tests
+tests/
