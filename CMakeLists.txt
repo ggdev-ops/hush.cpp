@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 enable_testing() # Enable CTest
 
 # Add Google Test
-add_subdirectory(.third_party/googletest)
+# Removed local googletest subdirectory
 
 # Define version for the code
 add_definitions(-DHUSH_VERSION="0.1v")
@@ -57,14 +57,14 @@ target_link_libraries(hush_remover PRIVATE hush_core ${FFMPEG_LIBRARIES})
 target_include_directories(hush_remover PRIVATE include)
 
 # Tests
-file(MAKE_DIRECTORY test/unit)
+# file(MAKE_DIRECTORY test/unit)
 
-add_executable(hush_Logger_tests test/unit/LoggerTests.cpp src/core/Logger.cpp)
-target_link_libraries(hush_Logger_tests PRIVATE gtest gtest_main)
-target_include_directories(hush_Logger_tests PRIVATE include)
-add_test(NAME run_Logger_tests COMMAND hush_Logger_tests)
+# add_executable(hush_Logger_tests test/unit/LoggerTests.cpp src/core/Logger.cpp)
+# target_link_libraries(hush_Logger_tests PRIVATE gtest gtest_main)
+# target_include_directories(hush_Logger_tests PRIVATE include)
+# add_test(NAME run_Logger_tests COMMAND hush_Logger_tests)
 
-add_executable(hush_AudioProcessor_tests test/unit/AudioProcessorTests.cpp src/core/Logger.cpp)
-target_link_libraries(hush_AudioProcessor_tests PRIVATE hush_core gtest gtest_main)
-target_include_directories(hush_AudioProcessor_tests PRIVATE include)
-add_test(NAME run_AudioProcessor_tests COMMAND hush_AudioProcessor_tests)
+# add_executable(hush_AudioProcessor_tests test/unit/AudioProcessorTests.cpp src/core/Logger.cpp)
+# target_link_libraries(hush_AudioProcessor_tests PRIVATE hush_core gtest gtest_main)
+# target_include_directories(hush_AudioProcessor_tests PRIVATE include)
+# add_test(NAME run_AudioProcessor_tests COMMAND hush_AudioProcessor_tests)

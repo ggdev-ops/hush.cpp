@@ -10,8 +10,6 @@ lib/
 .gemini/
 
 # Project specifics
-.third_party/
-third_party/
 plans/
 tests/input.mp3
 test_input.mp3
