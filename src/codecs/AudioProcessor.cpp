@@ -36,6 +36,7 @@ void AudioProcessor::closeResources() {
     inFormatCtx = nullptr;
     swrCtx = nullptr;
     encoderSwrCtx = nullptr;
+    encoderBuffer.clear();
 }
 
 bool AudioProcessor::openInputFile(const std::string& inputFile) {
@@ -148,7 +149,7 @@ ProcessingSummary AudioProcessor::process(const std::string& inputFile, const st
 }
 
 void AudioProcessor::detectAndRemoveSilence(AVFrame* decodedFrame) {
-    auto send_samples_to_encoder = [&](const int16_t* samples, int count) {
+    auto encode_frame_internal = [&](const int16_t* samples, int count) {
         if (!encoderSetupDone || count <= 0) return;
 
         AVFrame* encFrame = av_frame_alloc();
@@ -189,6 +190,23 @@ void AudioProcessor::detectAndRemoveSilence(AVFrame* decodedFrame) {
         av_packet_free(&pkt);
     };
 
+    auto send_to_encoder_buffer = [&](const int16_t* samples, int count) {
+        if (dryRun || !encoderSetupDone) return;
+        encoderBuffer.insert(encoderBuffer.end(), samples, samples + count);
+        
+        int frame_size = outputCodecContext->frame_size;
+        if (frame_size <= 0) {
+            // Codecs with variable frame size
+            encode_frame_internal(encoderBuffer.data(), encoderBuffer.size());
+            encoderBuffer.clear();
+        } else {
+            while (encoderBuffer.size() >= frame_size) {
+                encode_frame_internal(encoderBuffer.data(), frame_size);
+                encoderBuffer.erase(encoderBuffer.begin(), encoderBuffer.begin() + frame_size);
+            }
+        }
+    };
+
     if (decodedFrame) {
         int max_out_samples = av_rescale_rnd(swr_get_delay(swrCtx, decodedFrame->sample_rate) + decodedFrame->nb_samples, 16000, decodedFrame->sample_rate, AV_ROUND_UP);
         std::vector<int16_t> resampled(max_out_samples);
@@ -199,19 +217,31 @@ void AudioProcessor::detectAndRemoveSilence(AVFrame* decodedFrame) {
             // Buffer must account for internal buffering (up to ANALYSIS_BLOCK_SIZE - 1)
             std::vector<int16_t> output(out_samples + 1152); 
             int produced = 0;
-            detector->process(resampled.data(), out_samples, output.data(), produced);
+            detector->process(resampled.data(), out_samples, output.data(), produced, (int)output.size());
             if (produced > 0) {
-                send_samples_to_encoder(output.data(), produced);
+                send_to_encoder_buffer(output.data(), produced);
             }
         }
     } else {
         std::vector<int16_t> output(1152);
         int produced = 0;
-        detector->flush(output.data(), produced);
+        detector->flush(output.data(), produced, (int)output.size());
         if (produced > 0) {
-            send_samples_to_encoder(output.data(), produced);
+            send_to_encoder_buffer(output.data(), produced);
         }
         
+        // Final flush of the encoder buffer
+        if (!dryRun && encoderSetupDone && !encoderBuffer.empty()) {
+            int frame_size = outputCodecContext->frame_size;
+            if (frame_size > 0) {
+                encoderBuffer.resize(frame_size, 0); // Pad with silence
+                encode_frame_internal(encoderBuffer.data(), frame_size);
+            } else {
+                encode_frame_internal(encoderBuffer.data(), encoderBuffer.size());
+            }
+            encoderBuffer.clear();
+        }
+
         if (encoderSetupDone) {
             avcodec_send_frame(outputCodecContext, nullptr);
             AVPacket* pkt = av_packet_alloc();
@@ -279,3 +309,4 @@ void AudioProcessor::closeEncoder() {
     }
     encoderSetupDone = false;
 }
+

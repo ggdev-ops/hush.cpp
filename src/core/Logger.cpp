@@ -71,3 +71,4 @@ void Logger::debug(const char* format, ...) {
     getInstance()->log(LOG_DEBUG, format, args);
     va_end(args);
 }
+

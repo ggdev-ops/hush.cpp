@@ -81,3 +81,4 @@ TEST(LoggerTest, NoOutputForLowerLevel) {
     Logger::debug("This debug message should not appear.");
     EXPECT_EQ(TestLogger::getOutput().find("[DEBUG]"), std::string::npos);
 }
+

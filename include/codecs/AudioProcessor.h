@@ -61,9 +61,11 @@ private:
     bool encoderSetupDone = false;
     bool dryRun = false;
     long long totalEncodedSamples = 0;
+    std::vector<int16_t> encoderBuffer;
 
     bool setupEncoder(const std::string& outputFilePath);
     void closeEncoder();
 };
 
 #endif // AUDIO_PROCESSOR_H
+

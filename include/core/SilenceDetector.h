@@ -24,13 +24,16 @@ public:
     SilenceDetector(const HushConfig& config);
 
     // Process a chunk of PCM samples. 
-    // outSamples must be pre-allocated and large enough to hold inSamples.
-    void process(const int16_t* inSamples, int numInSamples, int16_t* outSamples, int& numOutSamples);
+    // outSamples must be pre-allocated. numOutSamples will be set to written count.
+    // capacity must reflect the size of outSamples buffer.
+    void process(const int16_t* inSamples, int numInSamples, int16_t* outSamples, int& numOutSamples, int capacity);
 
     // Flush any pending samples in the state machine.
-    void flush(int16_t* outSamples, int& numOutSamples);
+    void flush(int16_t* outSamples, int& numOutSamples, int capacity);
 
     HushStats getStats() const;
+
+    double getCurrentDb() const;
 
     static double calculateRmsDb(const int16_t* samples, int numSamples);
 
@@ -39,6 +42,7 @@ private:
     
     // Silence detection state
     bool isCurrentlySilent = true;
+    double lastDb = -100.0;
     int silentFramesCount = 0;
     int activeFramesCount = 0;
 
@@ -59,3 +63,4 @@ private:
 };
 
 #endif // SILENCE_DETECTOR_H
+

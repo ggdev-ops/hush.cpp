@@ -33,3 +33,4 @@ TEST(SilenceDetectorUtilsTest, CalculateRmsDb_MixedAmplitudes) {
     // 20 * log10(3316.62 / 32767.0) = -19.86 dB
     EXPECT_NEAR(SilenceDetector::calculateRmsDb(samples.data(), samples.size()), -19.86, 0.04);
 }
+
