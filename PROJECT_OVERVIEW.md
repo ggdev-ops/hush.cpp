@@ -14,15 +14,28 @@ The heart of `Hush!` is the `SilenceDetector`. This layer is strictly **PCM-only
 *   **Format:** Operates on raw S16_LE Mono PCM.
 *   **Design:** Sample-rate agnostic and streaming-capable.
 
-### 2. FFI Bridge (Middleware Layer)
-The `hush_api` provides an `extern "C"` boundary for external integration.
-*   **Use Case:** Direct memory-buffer processing for Android (Kotlin/Native), Python, or Go applications.
-*   **Features:** Handle-based state management, explicit flush for tail-audio, and real-time stats.
+### 2. Real-time I/O Layer (Voice SDK)
+High-level wrappers around `miniaudio` for direct hardware interaction.
+*   **AudioRecorder:** Captures microphone input and applies `SilenceDetector` in real-time within the audio callback. This ensures that only audible audio is ever written to disk or passed to the application.
+*   **AudioPlayer:** Provides thread-safe, asynchronous playback for monitoring or reviewing processed audio.
+
+### 3. FFI Bridge (Middleware Layer)
+The `hush_api` provides an `extern "C"` boundary for external integration, facilitating usage in higher-level languages.
+*   **Use Case:** Real-time memory-buffer processing for Android (Kotlin/Native), JVM, Python, or Go applications.
+*   **Features:** Handle-based state management, explicit flush for tail-audio, and real-time telemetry (reduction %, samples removed).
+*   **Safety:** Thread-safe state transitions via atomic flags and opaque pointer handles.
 
 ### 3. Codec Bridge (Legacy/Transport Layer)
 The `AudioProcessor` provides a high-level bridge between compressed files (MP3/WAV) and the core engine.
 *   **Normalization:** All inputs are resampled and mixed down to **16kHz Mono S16** (the "Whisper standard") before processing.
 *   **I/O:** Leverages FFmpeg for robust decoding and encoding.
+*   **Performance:** Now includes high-resolution timing to track processing overhead per file.
+
+### 4. Process Management Layer
+Provides background detachment and state tracking for long-running batch jobs.
+*   **Detachment:** Fork-based backgrounding with I/O redirection to logs.
+*   **State Persistence:** A file-based `StateManager` tracks PID, progress, and status across sessions.
+*   **Parallel Playback:** Supports "Process-and-Play" mode where the silencer runs in the background while an interactive player monitors the output in real-time.
 
 ## Data Flow Diagram
 
@@ -45,10 +58,12 @@ The `AudioProcessor` provides a high-level bridge between compressed files (MP3/
 
 *   **Static Library (`libhush_core.a`):** For C++ projects requiring direct embedding.
 *   **Shared Library (`libhush_ffi.so`):** For dynamic loading and cross-language integration.
-*   **CLI Tool (`hush_remover`):** For batch processing and testing.
+*   **CLI Tool (`hush`):** A robust utility for batch silence removal, interactive playback, and background task management.
+*   **Terminal Recorder Example (`hush-terminal-recorder`):** A real-time recording and playback tool demonstrating C API integration and `miniaudio`.
 
 ## Future Roadmap
 
 *   **Advanced VAD:** Integration of machine-learning based Voice Activity Detection (e.g., Silero VAD).
 *   **SIMD Optimization:** Accelerating RMS calculations using NEON/AVX instructions.
 *   **Multi-channel support:** Independent silence detection per-channel for multi-mic arrays.
+
