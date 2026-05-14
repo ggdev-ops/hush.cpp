@@ -2,7 +2,7 @@
 
 ## Project Description
 
-`Hush!` is a high-performance C++ engine designed for real-time speech intelligence pipelines (such as Whisper or klama-whisper). It identifies and eliminates silent segments from audio streams, significantly reducing processing time and storage requirements for downstream STT (Speech-to-Text) systems.
+`Hush!` is a high-performance C++ engine designed for real-time speech intelligence pipelines (such as Whisper or client-whisper). It identifies and eliminates silent segments from audio streams, significantly reducing processing time and storage requirements for downstream STT (Speech-to-Text) systems.
 
 Unlike traditional file-based tools, `Hush!` is built as a **PCM-first streaming component**, making it suitable for both batch file processing and live recording environments.
 
