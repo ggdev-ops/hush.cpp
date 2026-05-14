@@ -1,0 +1,5 @@
+headers = ffi/hush_api.h
+package = klama.hush
+staticLibraries = libhush_ffi.a libhush_core.a
+linkerOpts = -Wl,--exclude-libs,ALL -Wl,--gc-sections -llog -landroid -lm -lc++_shared
+
