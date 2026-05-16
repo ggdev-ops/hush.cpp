@@ -25,21 +25,29 @@ The `hush_api` provides an `extern "C"` boundary for external integration, facil
 *   **Features:** Handle-based state management, explicit flush for tail-audio, and real-time telemetry (reduction %, samples removed).
 *   **Safety:** Thread-safe state transitions via atomic flags and opaque pointer handles.
 
-### 3. Codec Bridge (Legacy/Transport Layer)
+### 4. Text-to-Speech Engine (Synthesis Layer)
+A high-performance synthesis engine based on ONNX Runtime.
+*   **Architecture:** Implements a diffusion-based TTS pipeline with duration prediction and vocoding.
+*   **Capability:** Multi-lingual support with customizable voice styles and speed control.
+*   **Integration:** Integrated into the core library as `TtsEngine`, using the project's native logging and error handling.
+
+### 5. Codec Bridge (Legacy/Transport Layer)
 The `AudioProcessor` provides a high-level bridge between compressed files (MP3/WAV) and the core engine.
 *   **Normalization:** All inputs are resampled and mixed down to **16kHz Mono S16** (the "Whisper standard") before processing.
 *   **I/O:** Leverages FFmpeg for robust decoding and encoding.
 *   **Performance:** Now includes high-resolution timing to track processing overhead per file.
 
-### 4. Process Management Layer
-Provides background detachment and state tracking for long-running batch jobs.
-*   **Detachment:** Fork-based backgrounding with I/O redirection to logs.
+### 6. Process Management Layer
+Provides background detachment and state tracking for long-running batch jobs or synthesis tasks.
+*   **Detachment:** Fork-based backgrounding with I/O redirection to `hush.log`.
 *   **State Persistence:** A file-based `StateManager` tracks PID, progress, and status across sessions.
-*   **Parallel Playback:** Supports "Process-and-Play" mode where the silencer runs in the background while an interactive player monitors the output in real-time.
+*   **Parallel Playback:** Supports "Process-and-Play" mode where the engine runs in the background while an interactive player monitors the output in real-time (supported for both silence removal and TTS).
 
 ## Data Flow Diagram
 
 ```
+[Text Input] -> [TtsEngine (ONNX)] -> [Synthesized PCM]
+                                           ↓
 [MP3/WAV File] -> [FFmpeg Decoder] -> [Normalization (16kHz Mono)] 
                                                ↓
 [Real-time Mic] -> [PCM Stream] ------> [SilenceDetector Core]

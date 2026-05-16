@@ -4,6 +4,8 @@
 #include "core/Logger.h"
 #include "core/AudioPlayer.h"
 #include "core/AudioRecorder.h"
+#include "core/TtsEngine.h"
+#include <fstream>
 #include <string>
 #include <getopt.h>
 #include <iostream>
@@ -230,13 +232,24 @@ int run_play_command(const std::string& pathStr, bool waitMode = false) {
 }
 
 void print_help(const std::string& programName) {
-    Logger::info("Hush! - Silence Remover & Player version %s", HUSH_VERSION);
+    Logger::info("Hush! - Silence Remover, Player & TTS version %s", HUSH_VERSION);
     Logger::info("Usage:");
     Logger::info("  Hush! [options] <input_path> <output_path>   (Silence Removal)");
     Logger::info("  Hush! record <output_file> [options]         (Audio Recording)");
     Logger::info("  Hush! play <file_path>                       (Audio Playback)");
+    Logger::info("  Hush! tts [options]                          (Text to Speech)");
     Logger::info("  Hush! status                                 (Check Background Progress)");
     Logger::info("  Hush! stop                                   (Stop Background Process)");
+    Logger::info("");
+    Logger::info("TTS Options:");
+    Logger::info("  -t, --text <text>       Direct text input for synthesis.");
+    Logger::info("  -i, --input <file>      Input text file for synthesis.");
+    Logger::info("  -o, --output <file>     Output WAV file (default: output.wav).");
+    Logger::info("  -v, --voice <voice>     Voice style name (e.g., M1, F1) or full path.");
+    Logger::info("  -s, --speed <float>     Speech speed (default: 1.05).");
+    Logger::info("  -n, --steps <int>       Diffusion steps (default: 8).");
+    Logger::info("      --play              Play back the synthesized audio immediately.");
+    Logger::info("      --detach            Run synthesis in the background.");
     Logger::info("");
     Logger::info("Core Options:");
     Logger::info("  <input_path>          Path to the input audio file or directory.");
@@ -378,6 +391,128 @@ int handle_record_command(int argc, char* argv[]) {
     return 0;
 }
 
+int handle_tts_command(int argc, char* argv[]) {
+    std::string text;
+    std::string inputFile;
+    std::string outputFile = "output.wav";
+    std::string voice = "M1";
+    float speed = 1.05f;
+    int steps = 8;
+    bool shouldPlay = false;
+    bool detach = false;
+    
+    const char* home = std::getenv("HOME");
+    std::string hush_dir = home ? std::string(home) + "/.HushAI" : "";
+    std::string onnx_dir = hush_dir + "/onnx";
+
+    enum {
+        OPT_TTS_PLAY = 1,
+        OPT_TTS_DETACH
+    };
+
+    static struct option long_options[] = {
+        {"text",    required_argument, 0, 't'},
+        {"input",   required_argument, 0, 'i'},
+        {"output",  required_argument, 0, 'o'},
+        {"voice",   required_argument, 0, 'v'},
+        {"speed",   required_argument, 0, 's'},
+        {"steps",   required_argument, 0, 'n'},
+        {"play",    no_argument,       0, OPT_TTS_PLAY},
+        {"detach",  no_argument,       0, OPT_TTS_DETACH},
+        {"help",    no_argument,       0, 'h'},
+        {0, 0, 0, 0}
+    };
+
+    int opt;
+    optind = 2; // Skip 'hush' and 'tts'
+    while ((opt = getopt_long(argc, argv, "t:i:o:v:s:n:h", long_options, nullptr)) != -1) {
+        switch (opt) {
+            case 't': text = optarg; break;
+            case 'i': inputFile = optarg; break;
+            case 'o': outputFile = optarg; break;
+            case 'v': voice = optarg; break;
+            case 's': speed = std::stof(optarg); break;
+            case 'n': steps = std::stoi(optarg); break;
+            case OPT_TTS_PLAY: shouldPlay = true; break;
+            case OPT_TTS_DETACH: detach = true; break;
+            case 'h': print_help(argv[0]); return 0;
+        }
+    }
+
+    if (shouldPlay) detach = true;
+
+    if (detach) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            Logger::error("Failed to fork background process.");
+            return 1;
+        }
+        if (pid > 0) {
+            Logger::info("TTS process detached to background (PID: %d).", pid);
+            HushState state;
+            state.pid = pid;
+            state.status = "synthesizing";
+            state.outputPath = outputFile;
+            StateManager::writeState(state);
+
+            if (shouldPlay) {
+                Logger::info("Starting parallel playback...");
+                return run_play_command(outputFile, true);
+            }
+            return 0;
+        }
+        
+        int log_fd = open("hush.log", O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if (log_fd != -1) {
+            dup2(log_fd, STDOUT_FILENO);
+            dup2(log_fd, STDERR_FILENO);
+            close(log_fd);
+        }
+        std::atexit([]() { StateManager::clearState(); });
+    }
+
+    if (text.empty() && !inputFile.empty()) {
+        std::ifstream f(inputFile);
+        if (f.is_open()) {
+            text = std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        } else {
+            Logger::error("Could not open input file: %s", inputFile.c_str());
+            return 1;
+        }
+    }
+
+    if (text.empty()) {
+        Logger::error("No text provided for TTS. Use --text or --input.");
+        return 1;
+    }
+
+    try {
+        Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "TTS");
+        Ort::MemoryInfo mem = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+        auto engine = loadTtsEngine(env, onnx_dir);
+        
+        std::string style_path = (voice.find("/") != std::string::npos || voice.find(".json") != std::string::npos) 
+                                 ? voice 
+                                 : hush_dir + "/voice_styles/" + voice + ".json";
+        auto style = loadTtsStyle({style_path});
+
+        Logger::info("Synthesizing speech...");
+        auto chunks = chunkTtsText(text);
+        std::vector<float> full_wav;
+        for (const auto& chunk : chunks) {
+            auto res = engine->synthesize(mem, chunk, "en", style, steps, speed);
+            full_wav.insert(full_wav.end(), res.wav.begin(), res.wav.end());
+        }
+
+        writeWav(outputFile, full_wav, engine->getSampleRate());
+        Logger::info("Saved to: %s", outputFile.c_str());
+    } catch (const std::exception& e) {
+        Logger::error("TTS Error: %s", e.what());
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     Logger::setLogLevel(Logger::LOG_INFO);
     av_log_set_level(AV_LOG_ERROR); // Default FFmpeg log level
@@ -396,6 +531,8 @@ int main(int argc, char* argv[]) {
             return handle_status_command();
         } else if (cmd == "stop") {
             return handle_stop_command();
+        } else if (cmd == "tts") {
+            return handle_tts_command(argc, argv);
         }
     }
 

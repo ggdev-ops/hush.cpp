@@ -40,6 +40,25 @@ if (hush_BUILD_CLI)
     endif()
 endif()
 
+# Find required packages
+find_package(PkgConfig REQUIRED)
+
+# ONNX Runtime
+find_package(onnxruntime QUIET CONFIG)
+if(NOT onnxruntime_FOUND)
+    pkg_check_modules(ONNXRUNTIME QUIET libonnxruntime)
+    if(ONNXRUNTIME_FOUND)
+        set(ONNXRUNTIME_INCLUDE_DIR ${ONNXRUNTIME_INCLUDE_DIRS})
+        set(ONNXRUNTIME_LIB ${ONNXRUNTIME_LIBRARIES})
+    else()
+        find_path(ONNXRUNTIME_INCLUDE_DIR NAMES onnxruntime_cxx_api.h PATHS /usr/local/include /usr/include PATH_SUFFIXES onnxruntime)
+        find_library(ONNXRUNTIME_LIB NAMES onnxruntime libonnxruntime PATHS /usr/local/lib /usr/lib)
+    endif()
+endif()
+
+# nlohmann/json
+find_package(nlohmann_json REQUIRED)
+
 # Add hush Core
 add_library(hush_core STATIC 
     src/core/SilenceDetector.cpp 
@@ -47,9 +66,18 @@ add_library(hush_core STATIC
     src/core/AudioPlayer.cpp
     src/core/AudioRecorder.cpp
     src/core/StateManager.cpp
+    src/core/TtsEngine.cpp
 )
 set_target_properties(hush_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(hush_core PUBLIC include)
+
+if(onnxruntime_FOUND)
+    target_link_libraries(hush_core PUBLIC onnxruntime::onnxruntime)
+else()
+    target_include_directories(hush_core PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
+    target_link_libraries(hush_core PUBLIC ${ONNXRUNTIME_LIB})
+endif()
+target_link_libraries(hush_core PUBLIC nlohmann_json::nlohmann_json)
 
 # Add hush FFI
 add_library(hush_ffi STATIC src/ffi/hush_api.cpp)
