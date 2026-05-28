@@ -8,7 +8,6 @@ Unlike traditional file-based tools, `Hush!` is built as a **PCM-first streaming
 
 ## Core Features
 
-*   **Integrated TTS Engine:** High-quality, multi-lingual Text-to-Speech synthesis using ONNX Runtime. Supports 30+ languages and custom voice styles.
 *   **Real-Time Voice SDK:** High-level `AudioRecorder` and `AudioPlayer` wrappers that enable silence-free voice capture and asynchronous playback with minimal latency.
 *   **PCM-Only Core Engine:** Standalone, sample-rate agnostic `SilenceDetector` that operates directly on raw S16_LE Mono PCM buffers.
 *   **Real-Time Streaming:** Support for chunked audio processing with state preservation and explicit flush mechanisms.
@@ -20,10 +19,8 @@ Unlike traditional file-based tools, `Hush!` is built as a **PCM-first streaming
 ## Requirements
 
 *   A C++17 compliant compiler
-*   [CMake](https://cmake.org/) (version 3.15 or higher)
-*   [FFmpeg development libraries](https://ffmpeg.org/) (required for the CLI legacy bridge).
-*   [ONNX Runtime](https://onnxruntime.ai/) (required for TTS features).
-*   [nlohmann/json](https://github.com/nlohmann/json) (required for TTS configuration).
+*   [CMake](https://cmake.org/) (version 3.10 or higher)
+*   [FFmpeg development libraries](https://ffmpeg.org/) (required for the CLI legacy bridge only).
 
 ## Building the Project
 
@@ -43,35 +40,36 @@ Upon successful compilation, the following targets are created:
 
 ## Usage (CLI)
 
-The `hush` tool supports four modes of operation: Silence Removal, Interactive Playback, Text-to-Speech, and Background Management.
+The `hush` tool supports three modes of operation: Silence Removal, Interactive Playback, and Background Management.
 
 ### 1. Silence Removal
-...
-### 2. Audio Playback
-...
-### 3. Text-to-Speech (TTS)
-Generate high-quality speech from text input or files.
+Process audio files or directories to remove silence.
 
 ```bash
-./hush tts [options]
+./hush [options] <input_path> <output_path>
 ```
 
 **Options:**
-*   `-t <text>`, `--text <text>`: Direct text input for synthesis.
-*   `-i <file>`, `--input <file>`: Input text file path.
-*   `-o <file>`, `--output <file>`: Output WAV file (default: `output.wav`).
-*   `-v <voice>`, `--voice <voice>`: Voice style name (e.g., `M1`, `F1`) or full path to style JSON.
-*   `-s <speed>`, `--speed <speed>`: Speech speed factor (default: `1.05`).
-*   `-n <steps>`, `--steps <steps>`: Diffusion steps (default: `8`).
-*   `--play`: Play back the synthesized audio immediately after generation.
-*   `--detach`: Run the synthesis process in the background.
+*   `-t <dB>`, `--threshold <dB>`: Silence threshold (default: `-40.0`).
+*   `-a <level>`, `--aggression <level>`: Trimming sensitivity (default: `1.0`).
+*   `--play`: Automatically start parallel playback of processed files.
+*   `--detach`: Run the silencer in the background.
+*   `--dry-run`: Analyze reductions without writing output.
+*   `-q`, `--quiet`: Suppress all output except errors.
 
-**Example:**
+### 2. Audio Playback
+Play processed files or entire directories with interactive controls.
+
 ```bash
-./hush tts --text "Hello world" --voice F1 --output hello.wav
+./hush play <path>
 ```
 
-### 4. Background Management
+**Controls:**
+*   `Space`: Pause / Resume.
+*   `Enter`: Stop playback.
+*   `>` / `<`: Next / Previous track (when playing a directory).
+
+### 3. Background Management
 Monitor or stop processes started with `--detach`.
 
 ```bash
