@@ -1,10 +1,41 @@
-# Hush! - PCM Silence Detection & Preprocessing Engine
+# Hush! — PCM Silence Detection Engine
 
 ## Project Description
 
-`Hush!` is a high-performance C++ engine designed for real-time speech intelligence pipelines (such as Whisper or client-whisper). It identifies and eliminates silent segments from audio streams, significantly reducing processing time and storage requirements for downstream STT (Speech-to-Text) systems.
+"Hush!" is a high-performance C++ PCM silence detection engine for speech intelligence pipelines.
 
-Unlike traditional file-based tools, `Hush!` is built as a **PCM-first streaming component**, making it suitable for both batch file processing and live recording environments.
+It removes silence from audio streams before downstream processing, reducing compute cost, storage overhead, and unnecessary inference work.
+
+Built around a PCM-first architecture, "Hush!" supports both batch processing and real-time streaming while remaining lightweight, deterministic, and easy to integrate across platforms.
+
+## The Hush Contract
+
+"Hush!" is a PCM-first silence detection engine for speech pipelines.
+
+### Inputs
+Hush accepts:
+- Signed 16-bit linear PCM ("S16_LE")
+- Mono audio
+- Streaming chunks or full audio buffers
+
+Compressed formats such as MP3 or WAV must be decoded before reaching the core engine.
+
+### Guarantees
+Hush guarantees:
+- Deterministic silence detection on PCM input
+- Stateful chunk-by-chunk processing for real-time streams
+- Explicit flush support for tail-audio completion
+- Processing telemetry, including samples removed and reduction percentage
+- No dependency on model runtimes or inference frameworks inside the core engine
+
+### Non-Goals
+Hush does not:
+- Perform speech-to-text transcription
+- Perform text-to-speech synthesis
+- Manage AI model lifecycle or inference sessions
+- Depend on ONNX Runtime or other ML frameworks in the core domain
+
+These capabilities may exist around Hush, but they are not part of the Hush core contract.
 
 ## Core Features
 
@@ -12,7 +43,7 @@ Unlike traditional file-based tools, `Hush!` is built as a **PCM-first streaming
 *   **PCM-Only Core Engine:** Standalone, sample-rate agnostic `SilenceDetector` that operates directly on raw S16_LE Mono PCM buffers.
 *   **Real-Time Streaming:** Support for chunked audio processing with state preservation and explicit flush mechanisms.
 *   **Professional FFI Bridge:** A clean `extern "C"` API for seamless integration with Kotlin Native, Python, or other high-level languages.
-*   **Whisper Optimization:** Internal normalization bridge forces 16kHz Mono S16 output, the industry standard for speech-to-text.
+*   **PCM Normalization:** Internal normalization bridge forces 16kHz Mono S16 output, a common format for speech recognition pipelines.
 *   **Legacy MP3 Support:** Maintains a CLI bridge for processing existing MP3 files.
 *   **Efficient RMS Analysis:** Optimized silence detection logic with timing-aware state machines and adjustable aggression levels.
 
@@ -117,5 +148,3 @@ hush_engine_destroy(engine);
 *   `ffi/`: The `extern "C"` bridge for interoperability.
 *   `codecs/`: Legacy FFmpeg bridge for MP3/WAV file I/O.
 *   `cli/`: Command-line interface implementation.
-# Hush.cpp
-

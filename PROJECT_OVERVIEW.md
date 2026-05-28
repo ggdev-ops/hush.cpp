@@ -1,8 +1,41 @@
-# Project Overview: Hush! - Silence Detection Component
+# Project Overview: Hush! — PCM Silence Detection Engine
 
 ## Introduction
 
-`Hush!` has evolved from a simple file-remover tool into a specialized PCM preprocessing engine for speech intelligence pipelines. Its primary role is to serve as an upstream filter for Automatic Speech Recognition (ASR) systems, ensuring that only audible segments are passed to the inference engine. This reduces computational waste and improves transcription efficiency.
+"Hush!" is designed as an upstream audio filtering component for speech systems.
+
+Its responsibility is narrow and explicit: detect silence in PCM streams and preserve only audible segments for downstream consumers such as speech recognition pipelines, storage systems, or real-time applications.
+
+The project is intentionally structured around strict component boundaries so the core engine remains dependency-light, reusable, and provider-neutral.
+
+## The Hush Contract
+
+"Hush!" is a PCM-first silence detection engine for speech pipelines.
+
+### Inputs
+Hush accepts:
+- Signed 16-bit linear PCM ("S16_LE")
+- Mono audio
+- Streaming chunks or full audio buffers
+
+Compressed formats such as MP3 or WAV must be decoded before reaching the core engine.
+
+### Guarantees
+Hush guarantees:
+- Deterministic silence detection on PCM input
+- Stateful chunk-by-chunk processing for real-time streams
+- Explicit flush support for tail-audio completion
+- Processing telemetry, including samples removed and reduction percentage
+- No dependency on model runtimes or inference frameworks inside the core engine
+
+### Non-Goals
+Hush does not:
+- Perform speech-to-text transcription
+- Perform text-to-speech synthesis
+- Manage AI model lifecycle or inference sessions
+- Depend on ONNX Runtime or other ML frameworks in the core domain
+
+These capabilities may exist around Hush, but they are not part of the Hush core contract.
 
 ## System Architecture
 
@@ -25,13 +58,13 @@ The `hush_api` provides an `extern "C"` boundary for external integration, facil
 *   **Features:** Handle-based state management, explicit flush for tail-audio, and real-time telemetry (reduction %, samples removed).
 *   **Safety:** Thread-safe state transitions via atomic flags and opaque pointer handles.
 
-### 3. Codec Bridge (Legacy/Transport Layer)
+### 4. Codec Bridge (Legacy/Transport Layer)
 The `AudioProcessor` provides a high-level bridge between compressed files (MP3/WAV) and the core engine.
-*   **Normalization:** All inputs are resampled and mixed down to **16kHz Mono S16** (the "Whisper standard") before processing.
+*   **Normalization:** All inputs are resampled and mixed down to **16kHz Mono S16** (a common format for speech recognition pipelines) before processing.
 *   **I/O:** Leverages FFmpeg for robust decoding and encoding.
 *   **Performance:** Now includes high-resolution timing to track processing overhead per file.
 
-### 4. Process Management Layer
+### 5. Process Management Layer
 Provides background detachment and state tracking for long-running batch jobs.
 *   **Detachment:** Fork-based backgrounding with I/O redirection to logs.
 *   **State Persistence:** A file-based `StateManager` tracks PID, progress, and status across sessions.
