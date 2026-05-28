@@ -17,11 +17,12 @@ SilenceDetector::SilenceDetector(const HushConfig& cfg) : config(cfg) {
 
 double SilenceDetector::calculateRmsDb(const int16_t* samples, int numSamples) {
     if (numSamples == 0) return -std::numeric_limits<double>::infinity();
-    double sum_sq = 0.0;
+    int64_t sum_sq = 0;
     for (int i = 0; i < numSamples; ++i) {
-        sum_sq += (double)samples[i] * samples[i];
+        int64_t s = samples[i];
+        sum_sq += s * s;
     }
-    double mean_sq = sum_sq / numSamples;
+    double mean_sq = static_cast<double>(sum_sq) / numSamples;
     double rms = std::sqrt(mean_sq);
     return 20.0 * std::log10(rms / 32767.0);
 }

@@ -80,6 +80,32 @@ Provides background detachment and state tracking for long-running batch jobs.
 [ASR Engine]   <- [Clean PCM Buffer] <- [Hush! Logic (Keep/Cut)]
 ```
 
+## Real-Time Threading Design & Safety
+
+To ensure absolute audio stream stability, `Hush!` defines a strict boundaries architecture for real-time thread safety. 
+
+### Audio Callback Thread Boundary
+The capture/playback loop runs on miniaudio's high-priority audio callback thread. This thread is subject to hard real-time requirements where any scheduling delay or execution pause causes audible dropouts (glitches) or data loss.
+
+To guarantee safety, the callback path enforces these rules:
+1. **Zero Dynamic Memory Allocation**: No heap allocations, deallocations, or container resizing (`vector::resize`) are allowed. All required buffers must be preallocated during the initialization/startup phase (`AudioRecorder::start()`).
+2. **Lock-Free Execution**: No standard mutexes or blocking synchronization primitives are used. State tracking uses lock-free atomic variables (`std::atomic`).
+3. **No I/O or Logging**: Disk writes, network calls, and string logging (such as `std::ostream` or formatting) are strictly prohibited on the hot path as they involve implicit locks and OS system calls.
+
+### Real-Time Pipeline Isolation
+The current design runs the RMS silence detection in-line inside the callback. Under heavy production loads (e.g. multi-channel, high sample rates), this coupling exposes the audio thread to computational jitter.
+
+The target architectural separation to isolate real-time safety follows this handoff model:
+```
+[RT Audio Thread Callback]
+            ↓ (Push raw samples)
+   [Lock-Free Ring Buffer]
+            ↓ (Pop raw samples)
+[Asynchronous Worker Thread] 
+            ↓ (SilenceDetector DSP & file I/O)
+```
+By restricting the RT Audio Thread exclusively to copying raw samples to a lock-free ring buffer (e.g., `ma_pcm_ring_buffer`), you decouple hardware timing fluctuations from processing/disk IO latencies, shielding the stream from downstream computational delays.
+
 ## Key Technical Specifications
 
 *   **Canonical Format:** S16_LE, Mono, 16kHz (normalized internally).

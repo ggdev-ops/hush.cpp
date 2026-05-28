@@ -10,6 +10,7 @@ struct AudioRecorder::Impl {
     ma_encoder encoder;
     SilenceDetector* detector = nullptr;
     std::atomic<bool> isRecording{false};
+    std::atomic<bool> bufferOverflow{false};
     std::vector<int16_t> processingBuffer;
     std::mutex statsMutex;
 
@@ -59,12 +60,15 @@ void AudioRecorder::data_callback(void* pDevicePtr, void* pOutput, const void* p
     const int16_t* pInputS16 = (const int16_t*)pInput;
 
     if (pImpl->detector) {
-        if (pImpl->processingBuffer.size() < frameCount + 4096) {
-            pImpl->processingBuffer.resize(frameCount + 4096);
+        int safeFrameCount = static_cast<int>(frameCount);
+        int maxAllowed = static_cast<int>(pImpl->processingBuffer.size());
+        if (safeFrameCount > maxAllowed) {
+            safeFrameCount = maxAllowed;
+            pImpl->bufferOverflow.store(true, std::memory_order_relaxed);
         }
 
-        int numOutSamples = (int)pImpl->processingBuffer.size();
-        pImpl->detector->process(pInputS16, (int)frameCount, pImpl->processingBuffer.data(), numOutSamples, (int)pImpl->processingBuffer.size());
+        int numOutSamples = maxAllowed;
+        pImpl->detector->process(pInputS16, safeFrameCount, pImpl->processingBuffer.data(), numOutSamples, maxAllowed);
 
         if (numOutSamples > 0) {
             if (!pImpl->config.output_file.empty()) {
@@ -117,6 +121,14 @@ bool AudioRecorder::start() {
         }
         return false;
     }
+
+    // Preallocate processingBuffer to avoid heap allocation in the real-time callback thread.
+    // We allocate either 4 times the internal period size or a full 1 second of audio, whichever is larger,
+    // to ensure the buffer easily handles any scheduling jitter/bursts without needing reallocation.
+    uint32_t periodSize = pImpl->device.capture.internalPeriodSizeInFrames;
+    if (periodSize == 0) periodSize = 1024;
+    uint32_t bufferCapacity = std::max(periodSize * 4, static_cast<uint32_t>(pImpl->config.sample_rate));
+    pImpl->processingBuffer.resize(bufferCapacity);
 
     if (ma_device_start(&pImpl->device) != MA_SUCCESS) {
         Logger::error("Failed to start capture device.");
