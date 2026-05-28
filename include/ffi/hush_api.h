@@ -97,9 +97,81 @@ hush_stats_t hush_recorder_get_stats(hush_recorder_t* recorder);
  */
 void hush_recorder_destroy(hush_recorder_t* recorder);
 
+/**
+ * Get the current audio level in dB from the recorder.
+ */
+double hush_recorder_get_current_db(hush_recorder_t* recorder);
+
+// --- Real-time Playback API ---
+
+typedef struct hush_player_t hush_player_t;
+
+/**
+ * Create a new Hush! player instance.
+ */
+hush_player_t* hush_player_create();
+
+/**
+ * Destroy the player instance.
+ */
+void hush_player_destroy(hush_player_t* player);
+
+/**
+ * Start playing an audio file.
+ */
+int hush_player_play(hush_player_t* player, const char* filepath);
+
+/**
+ * Start playing audio from a float buffer.
+ */
+int hush_player_play_buffer(hush_player_t* player, const float* samples, int count, int sample_rate);
+
+/**
+ * Toggle pause state of the player.
+ */
+void hush_player_toggle_pause(hush_player_t* player);
+
+/**
+ * Stop playing.
+ */
+void hush_player_stop(hush_player_t* player);
+
+/**
+ * Check if the player is currently playing.
+ */
+int hush_player_is_playing(hush_player_t* player);
+
+/**
+ * Check if playback is finished.
+ */
+int hush_player_is_finished(hush_player_t* player);
+
+// --- SilenceDetector API Extensions ---
+
+/**
+ * Get the current audio level in dB from the silence detector engine.
+ */
+double hush_engine_get_current_db(hush_engine_t* engine);
+
+// --- Global / Utility API ---
+
+/**
+ * Set log level (0: DEBUG, 1: INFO, 2: WARN, 3: ERROR).
+ */
+void hush_set_log_level(int level);
+
+/**
+ * Helper to calculate RMS dB of an arbitrary buffer.
+ */
+double hush_calculate_rms_db(const int16_t* samples, int num_samples);
+
+/**
+ * Helper to save a float buffer to a WAV file.
+ */
+int hush_save_wav(const char* filepath, const float* samples, int count, int sample_rate);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif // HUSH_API_H
-

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <atomic>
+#include <functional>
 #include "core/SilenceDetector.h"
 
 /**
@@ -11,12 +12,17 @@
  */
 class AudioRecorder {
 public:
+    friend class AudioRecorderTest;
+
+    typedef std::function<void(const int16_t* samples, size_t count)> DataCallback;
+
     struct Config {
         std::string output_file;
         double threshold_db = -40.0;
         double aggression_level = 1.0;
-        int sample_rate = 16000; // Default for Whisper
+        int sample_rate = 16000; // Default for Moonshine
         bool use_silence_removal = true;
+        DataCallback on_data = nullptr;
     };
 
     AudioRecorder(const Config& config);
@@ -32,6 +38,11 @@ public:
      * @brief Stops recording and releases resources.
      */
     void stop();
+
+    /**
+     * @brief Set or update the data callback.
+     */
+    void setDataCallback(DataCallback callback);
 
     /**
      * @brief Checks if audio is currently being recorded.

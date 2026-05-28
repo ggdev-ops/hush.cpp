@@ -39,13 +39,15 @@ struct AudioRecorder::Impl {
             int numOutSamples = 0;
             std::vector<int16_t> flushBuffer(config.sample_rate);
             detector->flush(flushBuffer.data(), numOutSamples, (int)flushBuffer.size());
-            if (numOutSamples > 0) {
+            if (numOutSamples > 0 && !config.output_file.empty()) {
                 ma_encoder_write_pcm_frames(&encoder, flushBuffer.data(), (ma_uint64)numOutSamples, NULL);
             }
         }
 
         ma_device_uninit(&device);
-        ma_encoder_uninit(&encoder);
+        if (!config.output_file.empty()) {
+            ma_encoder_uninit(&encoder);
+        }
     }
 };
 
@@ -65,10 +67,20 @@ void AudioRecorder::data_callback(void* pDevicePtr, void* pOutput, const void* p
         pImpl->detector->process(pInputS16, (int)frameCount, pImpl->processingBuffer.data(), numOutSamples, (int)pImpl->processingBuffer.size());
 
         if (numOutSamples > 0) {
-            ma_encoder_write_pcm_frames(&pImpl->encoder, pImpl->processingBuffer.data(), (ma_uint64)numOutSamples, NULL);
+            if (!pImpl->config.output_file.empty()) {
+                ma_encoder_write_pcm_frames(&pImpl->encoder, pImpl->processingBuffer.data(), (ma_uint64)numOutSamples, NULL);
+            }
+            if (pImpl->config.on_data) {
+                pImpl->config.on_data(pImpl->processingBuffer.data(), (size_t)numOutSamples);
+            }
         }
     } else {
-        ma_encoder_write_pcm_frames(&pImpl->encoder, pInputS16, (ma_uint64)frameCount, NULL);
+        if (!pImpl->config.output_file.empty()) {
+            ma_encoder_write_pcm_frames(&pImpl->encoder, pInputS16, (ma_uint64)frameCount, NULL);
+        }
+        if (pImpl->config.on_data) {
+            pImpl->config.on_data(pInputS16, (size_t)frameCount);
+        }
     }
 
     (void)pOutput;
@@ -83,10 +95,12 @@ AudioRecorder::~AudioRecorder() {
 bool AudioRecorder::start() {
     if (pImpl->isRecording) return false;
 
-    ma_encoder_config encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_s16, 1, pImpl->config.sample_rate);
-    if (ma_encoder_init_file(pImpl->config.output_file.c_str(), &encoderConfig, &pImpl->encoder) != MA_SUCCESS) {
-        Logger::error("Failed to initialize encoder for %s", pImpl->config.output_file.c_str());
-        return false;
+    if (!pImpl->config.output_file.empty()) {
+        ma_encoder_config encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_s16, 1, pImpl->config.sample_rate);
+        if (ma_encoder_init_file(pImpl->config.output_file.c_str(), &encoderConfig, &pImpl->encoder) != MA_SUCCESS) {
+            Logger::error("Failed to initialize encoder for %s", pImpl->config.output_file.c_str());
+            return false;
+        }
     }
 
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_capture);
@@ -98,14 +112,18 @@ bool AudioRecorder::start() {
 
     if (ma_device_init(NULL, &deviceConfig, &pImpl->device) != MA_SUCCESS) {
         Logger::error("Failed to initialize capture device.");
-        ma_encoder_uninit(&pImpl->encoder);
+        if (!pImpl->config.output_file.empty()) {
+            ma_encoder_uninit(&pImpl->encoder);
+        }
         return false;
     }
 
     if (ma_device_start(&pImpl->device) != MA_SUCCESS) {
         Logger::error("Failed to start capture device.");
         ma_device_uninit(&pImpl->device);
-        ma_encoder_uninit(&pImpl->encoder);
+        if (!pImpl->config.output_file.empty()) {
+            ma_encoder_uninit(&pImpl->encoder);
+        }
         return false;
     }
 
@@ -115,6 +133,10 @@ bool AudioRecorder::start() {
 
 void AudioRecorder::stop() {
     pImpl->stop();
+}
+
+void AudioRecorder::setDataCallback(DataCallback callback) {
+    pImpl->config.on_data = callback;
 }
 
 bool AudioRecorder::isRecording() const {

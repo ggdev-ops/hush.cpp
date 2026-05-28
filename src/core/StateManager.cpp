@@ -1,4 +1,5 @@
 #include "core/StateManager.h"
+#include "core/Logger.h"
 #include <fstream>
 #include <filesystem>
 #include <iostream>

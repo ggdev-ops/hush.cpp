@@ -1,6 +1,9 @@
 #include "ffi/hush_api.h"
 #include "core/SilenceDetector.h"
 #include "core/AudioRecorder.h"
+#include "core/AudioPlayer.h"
+#include "core/Logger.h"
+#include "core/miniaudio.h"
 #include <memory>
 
 struct hush_engine_t {
@@ -9,6 +12,10 @@ struct hush_engine_t {
 
 struct hush_recorder_t {
     std::unique_ptr<AudioRecorder> recorder;
+};
+
+struct hush_player_t {
+    std::unique_ptr<AudioPlayer> player;
 };
 
 extern "C" {
@@ -106,6 +113,86 @@ void hush_recorder_destroy(hush_recorder_t* recorder) {
     if (recorder) {
         delete recorder;
     }
+}
+
+double hush_recorder_get_current_db(hush_recorder_t* recorder) {
+    if (!recorder || !recorder->recorder) return -100.0;
+    return recorder->recorder->getCurrentDb();
+}
+
+// --- Real-time Playback API ---
+
+hush_player_t* hush_player_create() {
+    hush_player_t* player = new hush_player_t();
+    player->player = std::make_unique<AudioPlayer>();
+    return player;
+}
+
+void hush_player_destroy(hush_player_t* player) {
+    if (player) {
+        delete player;
+    }
+}
+
+int hush_player_play(hush_player_t* player, const char* filepath) {
+    if (!player || !player->player) return 0;
+    return player->player->play(filepath) ? 1 : 0;
+}
+
+int hush_player_play_buffer(hush_player_t* player, const float* samples, int count, int sample_rate) {
+    if (!player || !player->player) return 0;
+    return player->player->playBuffer(samples, (size_t)count, sample_rate) ? 1 : 0;
+}
+
+void hush_player_toggle_pause(hush_player_t* player) {
+    if (player && player->player) {
+        player->player->togglePause();
+    }
+}
+
+void hush_player_stop(hush_player_t* player) {
+    if (player && player->player) {
+        player->player->stop();
+    }
+}
+
+int hush_player_is_playing(hush_player_t* player) {
+    if (!player || !player->player) return 0;
+    return player->player->isPlaying() ? 1 : 0;
+}
+
+int hush_player_is_finished(hush_player_t* player) {
+    if (!player || !player->player) return 0;
+    return player->player->isFinished() ? 1 : 0;
+}
+
+// --- SilenceDetector API Extensions ---
+
+double hush_engine_get_current_db(hush_engine_t* engine) {
+    if (!engine || !engine->detector) return -100.0;
+    return engine->detector->getCurrentDb();
+}
+
+// --- Global / Utility API ---
+
+void hush_set_log_level(int level) {
+    if (level < 0 || level > 3) return;
+    Logger::setLogLevel(static_cast<Logger::LogLevel>(level));
+}
+
+double hush_calculate_rms_db(const int16_t* samples, int num_samples) {
+    return SilenceDetector::calculateRmsDb(samples, num_samples);
+}
+
+int hush_save_wav(const char* filepath, const float* samples, int count, int sample_rate) {
+    ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, sample_rate);
+    ma_encoder encoder;
+    if (ma_encoder_init_file(filepath, &config, &encoder) != MA_SUCCESS) {
+        return 0;
+    }
+    ma_encoder_write_pcm_frames(&encoder, samples, (ma_uint64)count, NULL);
+    ma_encoder_uninit(&encoder);
+    return 1;
 }
 
 } // extern "C"

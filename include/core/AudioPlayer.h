@@ -20,6 +20,15 @@ public:
     bool play(const std::string& filepath);
 
     /**
+     * @brief Starts playback of audio from a memory buffer.
+     * @param samples Pointer to float PCM samples.
+     * @param count Number of samples.
+     * @param sampleRate Sample rate in Hz.
+     * @return true if playback started successfully, false otherwise.
+     */
+    bool playBuffer(const float* samples, size_t count, int sampleRate);
+
+    /**
      * @brief Toggles between pause and resume states.
      */
     void togglePause();
