@@ -59,6 +59,36 @@ public:
      */
     double getCurrentDb() const;
 
+    /**
+     * @brief Get current buffer pressure level (0-100).
+     */
+    int getPressureLevel() const;
+
+    /**
+     * @brief Get current latency estimate in milliseconds.
+     */
+    int getLatencyEstimateMs() const;
+
+    /**
+     * @brief Get count of dropped samples due to buffer overflow.
+     */
+    uint64_t getDropCount() const;
+
+    /**
+     * @brief Get current degradation state (0: NORMAL, 1: DEGRADED, 2: EMERGENCY).
+     */
+    int getDegradationState() const;
+
+
+    /**
+     * @brief Inject audio samples directly into the pipeline (for testing or external streams).
+     * @return Number of samples successfully pushed.
+     */
+    size_t injectAudioSamples(const int16_t* samples, size_t count);
+
+
+
+
 private:
     static void data_callback(void* pDevice, void* pOutput, const void* pInput, uint32_t frameCount);
 

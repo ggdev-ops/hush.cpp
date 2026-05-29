@@ -120,6 +120,17 @@ double hush_recorder_get_current_db(hush_recorder_t* recorder) {
     return recorder->recorder->getCurrentDb();
 }
 
+int hush_recorder_get_pressure(hush_recorder_t* recorder) {
+    if (!recorder || !recorder->recorder) return 0;
+    return recorder->recorder->getPressureLevel();
+}
+
+int hush_recorder_get_degradation_state(hush_recorder_t* recorder) {
+    if (!recorder || !recorder->recorder) return 0;
+    return recorder->recorder->getDegradationState();
+}
+
+
 // --- Real-time Playback API ---
 
 hush_player_t* hush_player_create() {

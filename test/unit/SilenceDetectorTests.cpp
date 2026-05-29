@@ -2,6 +2,13 @@
 #include "core/SilenceDetector.h"
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 class SilenceDetectorTest : public ::testing::Test {
 protected:
@@ -60,8 +67,6 @@ TEST_F(SilenceDetectorTest, FlushOutputsPendingSamples) {
     EXPECT_EQ(numOut, 0); // Still in internal buffer
 
     detector.flush(outSamples.data(), numOut, outSamples.size());
-    // Since it was silent initially, it might still be silent unless we primed it.
-    // Let's prime it first to be "active".
 }
 
 TEST_F(SilenceDetectorTest, AggressionLevelImpact) {
@@ -70,7 +75,82 @@ TEST_F(SilenceDetectorTest, AggressionLevelImpact) {
     
     config.aggressionLevel = 5.0; // High aggression -> faster silence detection
     SilenceDetector detectorHigh(config);
+}
 
-    // We could verify internal frame counts if they were public, but we'll check behavior
-    // High aggression should switch to silent faster.
+TEST_F(SilenceDetectorTest, AdaptiveDSPModesAccuracyAndPerformance) {
+    SilenceDetector detector(config);
+
+    // Create a block of sample data (sine wave + some active signal)
+    const int blockSize = 1152;
+    std::vector<int16_t> block(blockSize);
+    for (int i = 0; i < blockSize; ++i) {
+        block[i] = static_cast<int16_t>(10000.0 * std::sin(2.0 * M_PI * i * 440.0 / 44100.0));
+    }
+
+    // 1. Accuracy Check
+    // Verify NORMAL mode RMS
+    std::vector<int16_t> outNormal(blockSize);
+    int numOutNormal = 0;
+    detector.process(block.data(), blockSize, outNormal.data(), numOutNormal, blockSize, FlowState::NORMAL);
+    double normalDb = detector.getCurrentDb();
+
+    // Reset detector state
+    detector.flush(outNormal.data(), numOutNormal, blockSize);
+
+    // Verify DEGRADED mode RMS (subsampled)
+    std::vector<int16_t> outDegraded(blockSize);
+    int numOutDegraded = 0;
+    detector.process(block.data(), blockSize, outDegraded.data(), numOutDegraded, blockSize, FlowState::DEGRADED);
+    double degradedDb = detector.getCurrentDb();
+
+    // Verify that subsampled RMS is very close to full RMS (within 0.5 dB)
+    EXPECT_NEAR(normalDb, degradedDb, 0.5);
+
+    // Reset detector state
+    detector.flush(outDegraded.data(), numOutDegraded, blockSize);
+
+    // Verify EMERGENCY mode
+    std::vector<int16_t> outEmergency(blockSize);
+    int numOutEmergency = 0;
+    detector.process(block.data(), blockSize, outEmergency.data(), numOutEmergency, blockSize, FlowState::EMERGENCY);
+    double emergencyDb = detector.getCurrentDb();
+
+    // Peak DB is ~3 dB higher than RMS DB for a sine wave.
+    EXPECT_NEAR(emergencyDb, normalDb + 3.01, 0.5);
+
+    // 2. Performance/Timing Check
+    const int iterations = 10000;
+    
+    // Normal mode timing
+    auto startNormal = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        detector.process(block.data(), blockSize, outNormal.data(), numOutNormal, blockSize, FlowState::NORMAL);
+    }
+    auto endNormal = std::chrono::high_resolution_clock::now();
+    auto durationNormal = std::chrono::duration_cast<std::chrono::microseconds>(endNormal - startNormal).count();
+
+    // Degraded mode timing
+    auto startDegraded = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        detector.process(block.data(), blockSize, outDegraded.data(), numOutDegraded, blockSize, FlowState::DEGRADED);
+    }
+    auto endDegraded = std::chrono::high_resolution_clock::now();
+    auto durationDegraded = std::chrono::duration_cast<std::chrono::microseconds>(endDegraded - startDegraded).count();
+
+    // Emergency mode timing
+    auto startEmergency = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        detector.process(block.data(), blockSize, outEmergency.data(), numOutEmergency, blockSize, FlowState::EMERGENCY);
+    }
+    auto endEmergency = std::chrono::high_resolution_clock::now();
+    auto durationEmergency = std::chrono::duration_cast<std::chrono::microseconds>(endEmergency - startEmergency).count();
+
+    std::cout << "[INFO] Performance Benchmarks (" << iterations << " blocks):" << std::endl;
+    std::cout << "[INFO]   NORMAL mode   : " << durationNormal << " us" << std::endl;
+    std::cout << "[INFO]   DEGRADED mode : " << durationDegraded << " us (subsampled RMS)" << std::endl;
+    std::cout << "[INFO]   EMERGENCY mode: " << durationEmergency << " us (peak envelope check)" << std::endl;
+
+    // Degraded mode and Emergency mode should both recover CPU cycles
+    EXPECT_LT(durationEmergency, durationNormal);
+    EXPECT_LT(durationDegraded, durationNormal);
 }

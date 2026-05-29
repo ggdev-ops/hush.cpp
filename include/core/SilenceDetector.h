@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <cmath>
+#include "core/FlowController.h"
 
 struct HushStats {
     long long totalInputSamples;
@@ -26,7 +27,7 @@ public:
     // Process a chunk of PCM samples. 
     // outSamples must be pre-allocated. numOutSamples will be set to written count.
     // capacity must reflect the size of outSamples buffer.
-    void process(const int16_t* inSamples, int numInSamples, int16_t* outSamples, int& numOutSamples, int capacity);
+    void process(const int16_t* inSamples, int numInSamples, int16_t* outSamples, int& numOutSamples, int capacity, FlowState flowState = FlowState::NORMAL);
 
     // Flush any pending samples in the state machine.
     void flush(int16_t* outSamples, int& numOutSamples, int capacity);
@@ -39,6 +40,7 @@ public:
 
 private:
     HushConfig config;
+    double linearThreshold;
     
     // Silence detection state
     bool isCurrentlySilent = true;
@@ -59,8 +61,7 @@ private:
     static constexpr int ANALYSIS_BLOCK_SIZE = 1152; 
     std::vector<int16_t> internalBuffer;
 
-    void processBlock(const int16_t* block, int size, int16_t* outSamples, int& numOutSamples);
+    void processBlock(const int16_t* block, int size, int16_t* outSamples, int& numOutSamples, FlowState flowState);
 };
 
 #endif // SILENCE_DETECTOR_H
-

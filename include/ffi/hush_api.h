@@ -102,6 +102,17 @@ void hush_recorder_destroy(hush_recorder_t* recorder);
  */
 double hush_recorder_get_current_db(hush_recorder_t* recorder);
 
+/**
+ * Get current buffer pressure level (0-100).
+ */
+int hush_recorder_get_pressure(hush_recorder_t* recorder);
+
+/**
+ * Get current degradation state (0: NORMAL, 1: DEGRADED, 2: EMERGENCY).
+ */
+int hush_recorder_get_degradation_state(hush_recorder_t* recorder);
+
+
 // --- Real-time Playback API ---
 
 typedef struct hush_player_t hush_player_t;

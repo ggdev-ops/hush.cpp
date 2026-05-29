@@ -54,6 +54,7 @@ add_library(hush_core STATIC
     src/core/AudioPlayer.cpp
     src/core/AudioRecorder.cpp
     src/core/StateManager.cpp
+    src/core/FlowController.cpp
 )
 set_target_properties(hush_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(hush_core PUBLIC include)
@@ -104,7 +105,7 @@ target_include_directories(hush_StateManager_tests PRIVATE include)
 add_test(NAME run_StateManager_tests COMMAND hush_StateManager_tests)
 
 add_executable(hush_AudioRecorder_tests test/unit/AudioRecorderTests.cpp)
-target_link_libraries(hush_AudioRecorder_tests PRIVATE hush_core gtest gtest_main)
+target_link_libraries(hush_AudioRecorder_tests PRIVATE hush_core hush_ffi gtest gtest_main)
 target_include_directories(hush_AudioRecorder_tests PRIVATE include)
 add_test(NAME run_AudioRecorder_tests COMMAND hush_AudioRecorder_tests)
 
@@ -112,8 +113,12 @@ add_executable(hush_AudioProcessor_tests test/unit/AudioProcessorTests.cpp src/c
 target_link_libraries(hush_AudioProcessor_tests PRIVATE hush_core gtest gtest_main ${FFMPEG_LIBRARIES})
 target_include_directories(hush_AudioProcessor_tests PRIVATE include)
 add_test(NAME run_AudioProcessor_tests COMMAND hush_AudioProcessor_tests)
-
 add_executable(hush_RingBuffer_tests test/unit/RingBufferTests.cpp)
 target_link_libraries(hush_RingBuffer_tests PRIVATE hush_core gtest gtest_main)
 target_include_directories(hush_RingBuffer_tests PRIVATE include)
 add_test(NAME run_RingBuffer_tests COMMAND hush_RingBuffer_tests)
+
+add_executable(hush_FlowController_tests test/unit/FlowControllerTests.cpp)
+target_link_libraries(hush_FlowController_tests PRIVATE hush_core gtest gtest_main)
+target_include_directories(hush_FlowController_tests PRIVATE include)
+add_test(NAME run_FlowController_tests COMMAND hush_FlowController_tests)
