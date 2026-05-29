@@ -39,10 +39,10 @@ These capabilities may exist around Hush, but they are not part of the Hush core
 
 ## Core Features
 
-*   **Real-Time Voice SDK:** High-level `AudioRecorder` and `AudioPlayer` wrappers that enable silence-free voice capture and asynchronous playback with minimal latency.
-*   **PCM-Only Core Engine:** Standalone, sample-rate agnostic `SilenceDetector` that operates directly on raw S16_LE Mono PCM buffers.
+*   **Real-Time Flow-Controlled Voice SDK:** High-level `AudioRecorder` and `AudioPlayer` wrappers. Decoupled using a cache-aligned, lock-free Single Producer Single Consumer (SPSC) ring buffer and background worker thread to shield the capture callback from CPU/disk IO scheduling spikes.
+*   **PCM-Only Core Engine:** Standalone, sample-rate agnostic `SilenceDetector` that operates directly on raw S16_LE Mono PCM buffers with adaptive RMS and peak-envelope calculation fidelity.
 *   **Real-Time Streaming:** Support for chunked audio processing with state preservation and explicit flush mechanisms.
-*   **Professional FFI Bridge:** A clean `extern "C"` API for seamless integration with Kotlin Native, Python, or other high-level languages.
+*   **Professional FFI Bridge:** A clean `extern "C"` API for seamless integration with Kotlin Native, Python, or other high-level languages, exposing lock-free atomic queries for buffer saturation pressure and degradation state.
 *   **PCM Normalization:** Internal normalization bridge forces 16kHz Mono S16 output, a common format for speech recognition pipelines.
 *   **Legacy MP3 Support:** Maintains a CLI bridge for processing existing MP3 files.
 *   **Efficient RMS Analysis:** Optimized silence detection logic with timing-aware state machines and adjustable aggression levels.

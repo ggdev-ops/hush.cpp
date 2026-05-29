@@ -55,8 +55,8 @@ High-level wrappers around `miniaudio` for direct hardware interaction.
 ### 3. FFI Bridge (Middleware Layer)
 The `hush_api` provides an `extern "C"` boundary for external integration, facilitating usage in higher-level languages.
 *   **Use Case:** Real-time memory-buffer processing for Android (Kotlin/Native), JVM, Python, or Go applications.
-*   **Features:** Handle-based state management, explicit flush for tail-audio, and real-time telemetry (reduction %, samples removed).
-*   **Safety:** Thread-safe state transitions via atomic flags and opaque pointer handles.
+*   **Features:** Handle-based state management, explicit flush for tail-audio, real-time telemetry (reduction %, samples removed), and lock-free backpressure metrics (buffer pressure, latency estimate, degradation state).
+*   **Safety:** Thread-safe state transitions via atomic flags, opaque pointer handles, and lock-free atomic telemetry queries.
 
 ### 4. Codec Bridge (Legacy/Transport Layer)
 The `AudioProcessor` provides a high-level bridge between compressed files (MP3/WAV) and the core engine.
@@ -92,19 +92,25 @@ To guarantee safety, the callback path enforces these rules:
 2. **Lock-Free Execution**: No standard mutexes or blocking synchronization primitives are used. State tracking uses lock-free atomic variables (`std::atomic`).
 3. **No I/O or Logging**: Disk writes, network calls, and string logging (such as `std::ostream` or formatting) are strictly prohibited on the hot path as they involve implicit locks and OS system calls.
 
-### Real-Time Pipeline Isolation
-The current design runs the RMS silence detection in-line inside the callback. Under heavy production loads (e.g. multi-channel, high sample rates), this coupling exposes the audio thread to computational jitter.
-
-The target architectural separation to isolate real-time safety follows this handoff model:
+### Real-Time Pipeline Isolation (Hush v2 RT)
+Hush v2 RT decouples hardware timing fluctuations from heavy computational processing and disk I/O using a Single Producer Single Consumer (SPSC) lock-free ring buffer:
 ```
 [RT Audio Thread Callback]
-            ↓ (Push raw samples)
-   [Lock-Free Ring Buffer]
-            ↓ (Pop raw samples)
+            ↓ (Push raw samples - lock-free)
+   [Lock-Free SPSC Ring Buffer]
+            ↓ (Pop raw samples - lock-free)
 [Asynchronous Worker Thread] 
-            ↓ (SilenceDetector DSP & file I/O)
+            ↓ (SilenceDetector DSP & File I/O)
 ```
-By restricting the RT Audio Thread exclusively to copying raw samples to a lock-free ring buffer (e.g., `ma_pcm_ring_buffer`), you decouple hardware timing fluctuations from processing/disk IO latencies, shielding the stream from downstream computational delays.
+By restricting the RT Audio Thread exclusively to copying raw samples to a cache-aligned `RingBuffer` (using bitwise masking and unbounded indices), hardware timing fluctuations are fully isolated from processing and disk write latencies.
+
+### Flow Control & Graceful Degradation State Machine
+The `FlowController` monitors queue saturation dynamically and manages three backpressure states:
+* **NORMAL** (Saturation < 50%): Performs full RMS silence detection.
+* **DEGRADED** (Saturation 50% - 80%): Silence detection degrades to **subsampled RMS** (skipping every second sample), reducing CPU arithmetic by 50% and recovering ~36% CPU cycles.
+* **EMERGENCY** (Saturation > 80%): Silence detection degrades to a cheap **subsampled peak envelope check** (skipping to check every fourth sample against a cached linear amplitude threshold), bypassing all multiplications, divisions, square roots, and logarithms in the loop, recovering over ~73% CPU cycles.
+* **Hysteresis release thresholds** (70% for Emergency-to-Degraded and 40% for Degraded-to-Normal) prevent rapid back-and-forth state oscillations.
+
 
 ## Key Technical Specifications
 
