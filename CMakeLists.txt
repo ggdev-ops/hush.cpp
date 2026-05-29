@@ -113,3 +113,7 @@ target_link_libraries(hush_AudioProcessor_tests PRIVATE hush_core gtest gtest_ma
 target_include_directories(hush_AudioProcessor_tests PRIVATE include)
 add_test(NAME run_AudioProcessor_tests COMMAND hush_AudioProcessor_tests)
 
+add_executable(hush_RingBuffer_tests test/unit/RingBufferTests.cpp)
+target_link_libraries(hush_RingBuffer_tests PRIVATE hush_core gtest gtest_main)
+target_include_directories(hush_RingBuffer_tests PRIVATE include)
+add_test(NAME run_RingBuffer_tests COMMAND hush_RingBuffer_tests)
