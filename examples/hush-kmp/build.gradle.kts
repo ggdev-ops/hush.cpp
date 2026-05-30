@@ -10,10 +10,10 @@ plugins {
 }
 
 val publishedModules = mapOf(
-    ":whisper" to "klama-whisper",
-    ":core" to "klama-core",
-    ":KGguf:lib" to "klama-gguf",
-    ":clients:koog" to "klama-koog"
+    ":whisper" to "myai-whisper",
+    ":core" to "myai-core",
+    ":KGguf:lib" to "myai-gguf",
+    ":clients:koog" to "myai-koog"
 )
 
 subprojects {
@@ -26,9 +26,9 @@ subprojects {
             
             pom {
                 name.set(artifactId)
-                description.set("Klama AI Library - ${artifactId}")
+                description.set("Myai AI Library - ${artifactId}")
                 inceptionYear.set("2026")
-                url.set("https://github.com/ggdev-ops/klama")
+                url.set("https://github.com/ggdev-ops/myai")
                 licenses {
                     license {
                         name.set("MIT")
@@ -42,7 +42,7 @@ subprojects {
                     }
                 }
                 scm {
-                    url.set("https://github.com/ggdev-ops/klama")
+                    url.set("https://github.com/ggdev-ops/myai")
                 }
             }
         }

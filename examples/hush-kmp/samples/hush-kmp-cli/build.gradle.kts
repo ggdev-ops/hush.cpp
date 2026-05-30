@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-group = "klama"
+group = "myai"
 version = "1.0-SNAPSHOT"
 
 dependencies {
@@ -13,7 +13,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("klama.hush.cli.MainKt")
+    mainClass.set("myai.hush.cli.MainKt")
 }
 
 kotlin {

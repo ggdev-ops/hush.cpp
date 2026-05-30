@@ -21,7 +21,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "klama.hush.kmp.desktop.MainKt"
+        mainClass = "myai.hush.kmp.desktop.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

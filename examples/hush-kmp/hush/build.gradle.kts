@@ -17,7 +17,7 @@ plugins {
     alias(libs.plugins.androidKmpLibrary)
 }
 
-group = "klama"
+group = "myai"
 
 val hushDirProvider = layout.projectDirectory.dir("../../..")
 
@@ -55,7 +55,7 @@ val buildHushLinuxX64 = tasks.register<CMakeBuildTask>("buildHushLinuxX64") {
     sourceDir.set(hushDirProvider)
     buildDir.set(layout.buildDirectory.dir("hush_build_linux_x64"))
     cmakeArgs.set(listOf(
-        "-DHUSH_BUILD_CLI=OFF",
+        "-Dhush_BUILD_CLI=OFF",
         "-DCMAKE_BUILD_TYPE=Release"
     ))
 }
@@ -77,7 +77,9 @@ val buildHushAndroidArm64 = tasks.register<CMakeBuildTask>("buildHushAndroidArm6
     buildDir.set(layout.buildDirectory.dir("hush_build_android_arm64"))
     cmakeArgs.set(ndkDirProvider.map { ndkDir ->
         listOf(
-            "-DHUSH_BUILD_CLI=OFF",
+            "-Dhush_BUILD_CLI=OFF",
+            "-Dhush_BUILD_TESTS=OFF",
+            "-Dhush_BUILD_EXAMPLES=OFF",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_TOOLCHAIN_FILE=$ndkDir/build/cmake/android.toolchain.cmake",
             "-DANDROID_ABI=arm64-v8a",
@@ -91,7 +93,9 @@ val buildHushAndroidX64 = tasks.register<CMakeBuildTask>("buildHushAndroidX64") 
     buildDir.set(layout.buildDirectory.dir("hush_build_android_x64"))
     cmakeArgs.set(ndkDirProvider.map { ndkDir ->
         listOf(
-            "-DHUSH_BUILD_CLI=OFF",
+            "-Dhush_BUILD_CLI=OFF",
+            "-Dhush_BUILD_TESTS=OFF",
+            "-Dhush_BUILD_EXAMPLES=OFF",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_TOOLCHAIN_FILE=$ndkDir/build/cmake/android.toolchain.cmake",
             "-DANDROID_ABI=x86_64",
@@ -104,7 +108,7 @@ val copyHushJniLibs = tasks.register<Sync>("copyHushJniLibs") {
     dependsOn("linkReleaseSharedLinuxX64")
     into(layout.buildDirectory.dir("processedResources/jvm/main/bin"))
     from(layout.buildDirectory.dir("bin/linuxX64/releaseShared")) {
-        include("libklama_hush_jni.so")
+        include("libmyai_hush_jni.so")
     }
 }
 
@@ -119,7 +123,7 @@ val copyHushAndroidNativeLibs = tasks.register<Sync>("copyHushAndroidNativeLibs"
     // ARM64
     into("arm64-v8a") {
         from(layout.buildDirectory.dir("bin/androidNativeArm64/releaseShared")) {
-            include("libklama_hush_android.so")
+            include("libmyai_hush_android.so")
         }
         from(toolchainLibPathProvider.map { "$it/aarch64-linux-android" }) {
             include("libc++_shared.so")
@@ -128,7 +132,7 @@ val copyHushAndroidNativeLibs = tasks.register<Sync>("copyHushAndroidNativeLibs"
     // X64
     into("x86_64") {
         from(layout.buildDirectory.dir("bin/androidNativeX64/releaseShared")) {
-            include("libklama_hush_android.so")
+            include("libmyai_hush_android.so")
         }
         from(toolchainLibPathProvider.map { "$it/x86_64-linux-android" }) {
             include("libc++_shared.so")
@@ -141,11 +145,11 @@ kotlin {
     android {
         packaging {
             jniLibs {
-                pickFirsts += "**/libklama_hush_android.so"
+                pickFirsts += "**/libmyai_hush_android.so"
                 pickFirsts += "**/libc++_shared.so"
             }
         }
-        namespace = "klama.hush"
+        namespace = "myai.hush"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
@@ -156,21 +160,21 @@ kotlin {
     linuxX64 {
         binaries {
             sharedLib {
-                baseName = "klama_hush_jni"
+                baseName = "myai_hush_jni"
             }
         }
     }
     androidNativeArm64 {
         binaries {
             sharedLib {
-                baseName = "klama_hush_android"
+                baseName = "myai_hush_android"
             }
         }
     }
     androidNativeX64 {
         binaries {
             sharedLib {
-                baseName = "klama_hush_android"
+                baseName = "myai_hush_android"
             }
         }
     }

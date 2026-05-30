@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "klama.hush.kmp.android"
+    namespace = "myai.hush.kmp.android"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
-        applicationId = "klama.hush.kmp.android"
+        applicationId = "myai.hush.kmp.android"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

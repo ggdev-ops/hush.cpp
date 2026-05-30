@@ -16,7 +16,7 @@ repositories {
 
 kotlin {
     android {
-        namespace = "klama.hush.kmp.common"
+        namespace = "myai.hush.kmp.common"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
     }

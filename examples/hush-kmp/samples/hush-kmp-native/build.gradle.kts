@@ -2,14 +2,14 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
 }
 
-group = "klama"
+group = "myai"
 version = "1.0-SNAPSHOT"
 
 kotlin {
     linuxX64 {
         binaries {
             executable {
-                entryPoint = "klama.hush.native.main"
+                entryPoint = "myai.hush.native.main"
             }
         }
     }
