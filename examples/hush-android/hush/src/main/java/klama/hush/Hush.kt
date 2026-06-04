@@ -63,6 +63,12 @@ class Hush(config: HushConfig) : AutoCloseable {
         private external fun hushCreate(thresholdDb: Double, aggressionLevel: Double, sampleRate: Int): Long
         
         init {
+            try {
+                System.loadLibrary("hush_core")
+                System.loadLibrary("hush_ffi")
+            } catch (e: UnsatisfiedLinkError) {
+                // Ignore if already loaded or not found
+            }
             System.loadLibrary("klama_hush_android")
         }
     }

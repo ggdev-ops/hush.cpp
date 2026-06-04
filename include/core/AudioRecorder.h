@@ -18,8 +18,8 @@ public:
 
     struct Config {
         std::string output_file;
-        double threshold_db = -40.0;
-        double aggression_level = 1.0;
+        double threshold_db = -25.0;
+        double aggression_level = 0.75;
         int sample_rate = 16000; // Default for Moonshine
         bool use_silence_removal = true;
         DataCallback on_data = nullptr;

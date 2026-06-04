@@ -2,6 +2,8 @@
 build/
 bin/
 lib/
+.gradle/
+.kotlin/
 
 # IDE and System files
 .vscode/

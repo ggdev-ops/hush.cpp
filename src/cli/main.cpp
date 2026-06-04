@@ -243,8 +243,8 @@ void print_help(const std::string& programName) {
     Logger::info("  <output_path>         Path to write the output audio file or directory.");
     Logger::info("");
     Logger::info("Processing Options:");
-    Logger::info("  -t, --threshold <dB>    Silence threshold in dB (default: -40.0).");
-    Logger::info("  -a, --aggression <lvl>  Aggression level for trimming (default: 1.0).");
+    Logger::info("  -t, --threshold <dB>    Silence threshold in dB (default: -25.0).");
+    Logger::info("  -a, --aggression <lvl>  Aggression level for trimming (default: 0.75).");
     Logger::info("      --dry-run           Perform analysis without writing the output file.");
     Logger::info("      --detach            Run the process in the background.");
     Logger::info("");
@@ -413,8 +413,8 @@ int main(int argc, char* argv[]) {
 
     std::string inputPathStr;
     std::string outputPathStr;
-    double silenceThresholdDb = -40.0;
-    double aggressionLevel = 1.0;
+    double silenceThresholdDb = -25.0;
+    double aggressionLevel = 0.75;
     bool dryRun = false;
     bool detach = false;
     bool shouldPlay = false;

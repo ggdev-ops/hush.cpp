@@ -7,6 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Include Hush headers
 include_directories(${HUSH_ROOT_DIR}/include)
 
+# Android does not have a separate pthread library (it is part of libc).
+# Create a dummy interface target for pthread so hush_core doesn't try to link -lpthread on Android.
+if(ANDROID)
+    add_library(pthread INTERFACE)
+endif()
+
 # We need to compile the Hush core library as part of this build 
 # so it compiles for the correct Android ABI
 add_subdirectory(${HUSH_ROOT_DIR} hush_core_build)

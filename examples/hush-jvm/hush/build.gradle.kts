@@ -42,7 +42,7 @@ abstract class CMakeBuildTask @Inject constructor(
 
         execOperations.exec {
             workingDir = bld
-            commandLine("cmake", src.absolutePath, "-DHUSH_BUILD_CLI=OFF", "-DCMAKE_BUILD_TYPE=Release", "-DBUILD_SHARED_LIBS=OFF")
+            commandLine("cmake", src.absolutePath, "-DHUSH_BUILD_CLI=OFF", "-DCMAKE_BUILD_TYPE=Release", "-DBUILD_SHARED_LIBS=ON")
         }
 
         execOperations.exec {
@@ -85,12 +85,16 @@ tasks.named("processResources") {
     
     doLast {
         val buildDir = buildHushJni.get().buildDir.get().asFile
+        val coreBuildDir = buildHushCore.get().buildDir.get().asFile
         val resourcesDir = layout.buildDirectory.dir("resources/main").get().asFile
         
         val libFile = buildDir.listFiles()?.find { it.name.endsWith(".so") || it.name.endsWith(".dll") || it.name.endsWith(".dylib") }
         if (libFile != null) {
             libFile.copyTo(File(resourcesDir, libFile.name), overwrite = true)
         }
+        
+        coreBuildDir.listFiles()?.filter { it.name.endsWith(".so") || it.name.endsWith(".dll") || it.name.endsWith(".dylib") }?.forEach { f ->
+            f.copyTo(File(resourcesDir, f.name), overwrite = true)
+        }
     }
 }
-

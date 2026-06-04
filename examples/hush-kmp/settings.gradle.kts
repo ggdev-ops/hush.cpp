@@ -15,9 +15,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "hush-kmp"
 include(":hush")
-include("samples:hush-kmp-app:commonApp")
-include("samples:hush-kmp-app:desktopApp")
-include("samples:hush-kmp-app:androidApp")
+include(":hush-kmp-app:commonApp")
+include(":hush-kmp-app:desktopApp")
+include(":hush-kmp-app:androidApp")
 include("samples:hush-kmp-cli")
 include("samples:hush-kmp-native")
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

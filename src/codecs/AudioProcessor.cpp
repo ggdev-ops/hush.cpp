@@ -271,7 +271,13 @@ bool AudioProcessor::setupEncoder(const std::string& outputFilePath) {
     
     outputCodecContext->sample_rate = 16000;
     outputCodecContext->ch_layout = AV_CHANNEL_LAYOUT_MONO;
-    outputCodecContext->sample_fmt = encoder->sample_fmts ? encoder->sample_fmts[0] : AV_SAMPLE_FMT_S16;
+    const enum AVSampleFormat *sample_fmts = nullptr;
+    int num_sample_fmts = 0;
+    if (avcodec_get_supported_config(nullptr, encoder, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, (const void**)&sample_fmts, &num_sample_fmts) >= 0 && sample_fmts && num_sample_fmts > 0) {
+        outputCodecContext->sample_fmt = sample_fmts[0];
+    } else {
+        outputCodecContext->sample_fmt = AV_SAMPLE_FMT_S16;
+    }
     outputCodecContext->bit_rate = 128000;
     outputCodecContext->time_base = {1, 16000};
 

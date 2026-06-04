@@ -1,5 +1,4 @@
 headers = ffi/hush_api.h
 package = myai.hush
-staticLibraries = libhush_ffi.a libhush_core.a
 linkerOpts.linux = -lpthread -lstdc++ -lm
 

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(hush VERSION 1.0.0 LANGUAGES CXX)
 
+if (POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -50,7 +54,7 @@ if (hush_BUILD_CLI)
 endif()
 
 # Add hush Core
-add_library(hush_core STATIC 
+add_library(hush_core SHARED 
     src/core/SilenceDetector.cpp 
     src/core/Logger.cpp
     src/core/AudioPlayer.cpp
@@ -63,16 +67,20 @@ target_include_directories(hush_core PUBLIC include)
 
 # System libraries for miniaudio (used by AudioPlayer/AudioRecorder in hush_core)
 if(UNIX AND NOT APPLE)
-    target_link_libraries(hush_core PUBLIC pthread m dl)
+    if(ANDROID)
+        target_link_libraries(hush_core PUBLIC m dl)
+    else()
+        target_link_libraries(hush_core PUBLIC pthread m dl)
+    endif()
 endif()
 if(APPLE)
     target_link_libraries(hush_core PUBLIC "-framework CoreAudio" "-framework CoreFoundation" "-framework AudioUnit")
 endif()
 
 # Add hush FFI
-add_library(hush_ffi STATIC src/ffi/hush_api.cpp)
+add_library(hush_ffi SHARED src/ffi/hush_api.cpp)
 set_target_properties(hush_ffi PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(hush_ffi PRIVATE hush_core)
+target_link_libraries(hush_ffi PUBLIC hush_core)
 target_include_directories(hush_ffi PUBLIC include include/ffi)
 
 if (hush_BUILD_CLI)

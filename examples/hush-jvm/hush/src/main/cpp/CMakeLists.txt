@@ -10,7 +10,7 @@ include_directories(${HUSH_ROOT_DIR}/include)
 
 add_library(klama_hush_jni SHARED HushJni.cpp)
 target_link_libraries(klama_hush_jni PRIVATE
-    ${HUSH_CORE_BUILD_DIR}/libhush_ffi.a
-    ${HUSH_CORE_BUILD_DIR}/libhush_core.a
+    ${HUSH_CORE_BUILD_DIR}/libhush_ffi.so
+    ${HUSH_CORE_BUILD_DIR}/libhush_core.so
 )
 

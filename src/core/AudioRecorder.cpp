@@ -125,7 +125,7 @@ void AudioRecorder::Impl::workerLoop() {
             }
             {
                 std::lock_guard<std::mutex> lock(statsMutex);
-                detector->process(popBuffer.data(), static_cast<int>(popped), workerProcessingBuffer.data(), numOutSamples, numOutSamples, currentState);
+                detector->process(popBuffer.data(), static_cast<int>(popped), workerProcessingBuffer.data(), numOutSamples, static_cast<int>(workerProcessingBuffer.size()), currentState);
             }
 
             if (numOutSamples > 0) {

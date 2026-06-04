@@ -15,17 +15,19 @@ android {
             cmake {
                 cppFlags += "-std=c++17"
                 arguments += "-DHUSH_ROOT_DIR=${project.rootDir.absolutePath}/../.."
-                arguments += "-DHUSH_BUILD_CLI=OFF"
+                arguments += "-Dhush_BUILD_CLI=OFF"
+                arguments += "-Dhush_BUILD_TESTS=OFF"
+                arguments += "-Dhush_BUILD_EXAMPLES=OFF"
             }
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     externalNativeBuild {
         cmake {

@@ -19,7 +19,30 @@ plugins {
 
 group = "myai"
 
-val hushDirProvider = layout.projectDirectory.dir("../../..")
+val hushDirProvider = project.provider { project.layout.projectDirectory.dir("/home/gg/hush.cpp") }
+
+abstract class CloneHushTask : Exec() {
+    @get:OutputDirectory
+    abstract val destinationDir: DirectoryProperty
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    override fun exec() {
+        val dest = destinationDir.get().asFile
+        if (dest.exists()) {
+            dest.deleteRecursively()
+        }
+        commandLine("cp", "-r", "/home/gg/hush.cpp", dest.absolutePath)
+        println("Copying local hush.cpp to ${dest.absolutePath}...")
+        super.exec()
+    }
+}
+
+val cloneHushCppIfNeeded = tasks.register<CloneHushTask>("cloneHushCppIfNeeded") {
+    destinationDir.set(hushDirProvider)
+}
 
 abstract class CMakeBuildTask @Inject constructor(
     private val execOperations: ExecOperations
@@ -110,6 +133,9 @@ val copyHushJniLibs = tasks.register<Sync>("copyHushJniLibs") {
     from(layout.buildDirectory.dir("bin/linuxX64/releaseShared")) {
         include("libmyai_hush_jni.so")
     }
+    from(buildHushLinuxX64.get().buildDir) {
+        include("libhush_ffi.so", "libhush_core.so")
+    }
 }
 
 val copyHushAndroidNativeLibs = tasks.register<Sync>("copyHushAndroidNativeLibs") {
@@ -125,6 +151,9 @@ val copyHushAndroidNativeLibs = tasks.register<Sync>("copyHushAndroidNativeLibs"
         from(layout.buildDirectory.dir("bin/androidNativeArm64/releaseShared")) {
             include("libmyai_hush_android.so")
         }
+        from(buildHushAndroidArm64.get().buildDir) {
+            include("libhush_ffi.so", "libhush_core.so")
+        }
         from(toolchainLibPathProvider.map { "$it/aarch64-linux-android" }) {
             include("libc++_shared.so")
         }
@@ -133,6 +162,9 @@ val copyHushAndroidNativeLibs = tasks.register<Sync>("copyHushAndroidNativeLibs"
     into("x86_64") {
         from(layout.buildDirectory.dir("bin/androidNativeX64/releaseShared")) {
             include("libmyai_hush_android.so")
+        }
+        from(buildHushAndroidX64.get().buildDir) {
+            include("libhush_ffi.so", "libhush_core.so")
         }
         from(toolchainLibPathProvider.map { "$it/x86_64-linux-android" }) {
             include("libc++_shared.so")
@@ -146,6 +178,8 @@ kotlin {
         packaging {
             jniLibs {
                 pickFirsts += "**/libmyai_hush_android.so"
+                pickFirsts += "**/libhush_ffi.so"
+                pickFirsts += "**/libhush_core.so"
                 pickFirsts += "**/libc++_shared.so"
             }
         }
@@ -221,7 +255,7 @@ kotlin {
                         else "src/nativeInterop/cinterop/hush.def"
                     )
                 )
-                includeDirs(hushDirProvider.asFile.resolve("include"))
+                includeDirs(hushDirProvider.get().asFile.resolve("include"))
                 if (hushBuildDir != null && hushBuildTask != null) {
                     val hushLibPath = hushBuildDir.get().asFile.absolutePath
                     extraOpts("-libraryPath", hushLibPath)
@@ -236,7 +270,7 @@ kotlin {
         if (hushBuildDir != null && hushBuildTask != null) {
             binaries.withType<org.jetbrains.kotlin.gradle.plugin.mpp.SharedLibrary> {
                 val hushLibDir = hushBuildDir.get().asFile.absolutePath
-                linkerOpts("-L$hushLibDir")
+                linkerOpts("-L$hushLibDir", "-lhush_ffi", "-lhush_core")
                 
                 linkTaskProvider.configure {
                     dependsOn(hushBuildTask)
@@ -252,27 +286,38 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.3.3")
             }
         }
+val nativeMain by creating {
+    dependsOn(commonMain)
+}
+val jvmMain by getting {
+    dependsOn(commonMain)
+}
+val androidMain by getting {
+    dependsOn(commonMain)
+    dependencies {
+        implementation("androidx.core:core-ktx:1.9.0")
+    }
+    resources.srcDirs(copyHushAndroidNativeLibs)
+    }
 
-        val nativeMain by creating
-        val jvmMain by getting
-        val linuxX64Main by getting
-        val androidNativeMain by creating
-        val androidNativeArm64Main by getting
-        val androidNativeX64Main by getting
-
-        val androidMain by getting {
-            dependencies {
-                implementation("androidx.core:core-ktx:1.9.0")
-            }
-            resources.srcDirs(copyHushAndroidNativeLibs)
-        }
+val linuxX64Main by getting {
+    dependsOn(nativeMain)
+    }
+val androidNativeMain by creating {
+    dependsOn(nativeMain)
+    }
+val androidNativeArm64Main by getting {
+    dependsOn(androidNativeMain)
+    }
+val androidNativeX64Main by getting {
+    dependsOn(androidNativeMain)
     }
 }
-
 tasks.named("androidPreBuild") {
     dependsOn(copyHushAndroidNativeLibs)
 }
 
 tasks.named("jvmProcessResources") {
     dependsOn(copyHushJniLibs)
+}
 }

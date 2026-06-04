@@ -88,29 +88,41 @@ internal object HushLoader {
     fun load() {
         if (loaded) return
         try {
+            System.loadLibrary("hush_core")
+            System.loadLibrary("hush_ffi")
             System.loadLibrary("klama_hush_jni")
             loaded = true
         } catch (e: UnsatisfiedLinkError) {
-            // Extraction logic same as in Hush.kt
-            val libName = System.mapLibraryName("klama_hush_jni")
-            val resourceStream = HushRecorder::class.java.classLoader.getResourceAsStream(libName)
-            if (resourceStream != null) {
-                val tmpDir = java.io.File(System.getProperty("java.io.tmpdir"), "klama_hush_native")
-                if (!tmpDir.exists()) tmpDir.mkdirs()
-                val outFile = java.io.File(tmpDir, libName)
-                if (outFile.exists()) outFile.delete()
-                try {
-                    resourceStream.use { input ->
-                        outFile.outputStream().use { output ->
-                            input.copyTo(output)
+            val tmpDir = java.io.File(System.getProperty("java.io.tmpdir"), "klama_hush_native")
+            if (!tmpDir.exists()) tmpDir.mkdirs()
+            val libNames = listOf("hush_core", "hush_ffi", "klama_hush_jni").map { System.mapLibraryName(it) }
+            for (libName in libNames) {
+                val resourceStream = HushRecorder::class.java.classLoader.getResourceAsStream(libName)
+                if (resourceStream != null) {
+                    val outFile = java.io.File(tmpDir, libName)
+                    if (outFile.exists()) outFile.delete()
+                    try {
+                        resourceStream.use { input ->
+                            outFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
                         }
+                    } catch (ex: Exception) {
+                        System.err.println("[Hush] Failed to extract $libName: ${ex.message}")
                     }
-                    System.load(outFile.absolutePath)
-                    loaded = true
-                } catch (ex: Exception) {
-                    System.err.println("[Hush] Failed to extract and load native library: ${ex.message}")
                 }
             }
+            for (libName in libNames) {
+                val outFile = java.io.File(tmpDir, libName)
+                if (outFile.exists()) {
+                    try {
+                        System.load(outFile.absolutePath)
+                    } catch (ex: UnsatisfiedLinkError) {
+                        // ignore/fallback
+                    }
+                }
+            }
+            loaded = true
         }
     }
 }
