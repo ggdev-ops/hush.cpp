@@ -19,11 +19,17 @@ plugins {
 
 group = "myai"
 
-val hushDirProvider = project.provider { project.layout.projectDirectory.dir("/home/gg/hush.cpp") }
+val hushDirProvider = project.provider { 
+    val rootDir = project.findProperty("hush.dir")?.toString() ?: "${project.rootDir.absolutePath}/../.."
+    project.layout.projectDirectory.dir(rootDir)
+}
 
 abstract class CloneHushTask : Exec() {
     @get:OutputDirectory
     abstract val destinationDir: DirectoryProperty
+
+    @get:Input
+    abstract val sourceDir: Property<String>
 
     init {
         outputs.upToDateWhen { false }
@@ -34,14 +40,16 @@ abstract class CloneHushTask : Exec() {
         if (dest.exists()) {
             dest.deleteRecursively()
         }
-        commandLine("cp", "-r", "/home/gg/hush.cpp", dest.absolutePath)
-        println("Copying local hush.cpp to ${dest.absolutePath}...")
+        val src = sourceDir.get()
+        commandLine("cp", "-r", src, dest.absolutePath)
+        println("Copying $src to ${dest.absolutePath}...")
         super.exec()
     }
 }
 
 val cloneHushCppIfNeeded = tasks.register<CloneHushTask>("cloneHushCppIfNeeded") {
-    destinationDir.set(hushDirProvider)
+    destinationDir.set(layout.buildDirectory.dir("hush-source"))
+    sourceDir.set(hushDirProvider.map { it.asFile.absolutePath })
 }
 
 abstract class CMakeBuildTask @Inject constructor(

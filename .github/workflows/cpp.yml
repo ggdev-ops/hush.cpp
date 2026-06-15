@@ -1,0 +1,43 @@
+name: C++ CI
+
+on:
+  push:
+    branches: [ main, feature/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} - C++ Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev libasound2-dev
+
+    - name: Install Dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install ffmpeg
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -Dhush_BUILD_CLI=ON -Dhush_BUILD_TESTS=ON -Dhush_BUILD_EXAMPLES=ON
+
+    - name: Build
+      run: |
+        cmake --build build --config Release
+
+    - name: Run Tests
+      run: |
+        cd build
+        ctest --output-on-failure
