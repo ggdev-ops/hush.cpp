@@ -93,11 +93,6 @@ if (hush_BUILD_CLI)
     target_include_directories(hush PRIVATE include)
 endif()
 
-# Examples
-if (hush_BUILD_EXAMPLES)
-    add_subdirectory(examples/hush-terminal-recorder)
-endif()
-
 # Tests
 if (hush_BUILD_TESTS)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test/unit)

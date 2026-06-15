@@ -67,7 +67,6 @@ Upon successful compilation, the following targets are created:
 *   `libhush_core.a`: The standalone PCM engine (strictly PCM, no dependencies).
 *   `libhush_ffi.a`: Static library for FFI integration (C-API).
 *   `hush`: The CLI tool for MP3/WAV file processing (requires FFmpeg).
-*   `hush-terminal-recorder`: A real-time voice recorder showing live C API usage with `miniaudio`.
 
 ## Usage (CLI)
 
@@ -107,21 +106,6 @@ Monitor or stop processes started with `--detach`.
 ./hush status   # Show real-time progress of the background job
 ./hush stop     # Gracefully terminate the background job
 ```
-
-## Usage (Terminal Recorder)
-
-Record directly from your microphone with real-time silence removal and performance metrics:
-
-```bash
-./hush-terminal-recorder <output.wav> [threshold_db] [aggression] [--play] [--stop-record <seconds>]
-```
-
-> **Note for Termux users:** To record audio on Android via Termux, you must install the [Termux:API](https://wiki.termux.com/wiki/Termux:API) app, install the `termux-api` package (`pkg install termux-api`), and ensure Microphone permissions are granted to the Termux app.
-
-**Examples:**
-- `... --play`: Plays back the processed audio immediately after recording.
-- `... --stop-record 10`: Automatically stops recording after 10 seconds.
-
 
 ## FFI Integration
 
