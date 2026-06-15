@@ -124,7 +124,8 @@ The `FlowController` monitors queue saturation dynamically and manages three bac
 *   **Static Library (`libhush_core.a`):** For C++ projects requiring direct embedding.
 *   **Shared Library (`libhush_ffi.so`):** For dynamic loading and cross-language integration.
 *   **CLI Tool (`hush`):** A robust utility for batch silence removal, interactive playback, and background task management.
-*   **Terminal Recorder Example (`hush-terminal-recorder`):** A real-time recording and playback tool demonstrating C API integration and `miniaudio`.
+*   **Android App (`hush-android`):** A native Android application demonstrating real-time silence detection and recording on mobile devices.
+*   **Kotlin Multiplatform SDK (`hush-kmp`):** A unified SDK for JVM, Android, and Desktop platforms with a shared engine interface.
 
 ## Future Roadmap
 
