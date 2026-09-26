@@ -1,15 +1,18 @@
 # Build directories
 build/
+build-ios-*/
 bin/
 lib/
 .gradle/
 .kotlin/
+DerivedData/
 
 # IDE and System files
 .vscode/
 .idea/
 .DS_Store
 .gemini/
+xcuserdata/
 
 # Project specifics
 plans/

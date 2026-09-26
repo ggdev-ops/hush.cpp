@@ -1,0 +1,3 @@
+// Library search paths per SDK
+LIBRARY_SEARCH_PATHS[sdk=iphoneos*] = $(SRCROOT)/Libs/ios-arm64
+LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*] = $(SRCROOT)/Libs/ios-arm64-simulator
