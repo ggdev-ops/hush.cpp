@@ -1,0 +1,25 @@
+@PACKAGE_INIT@
+
+# Hush is a PCM silence-detection engine.
+#
+# Consumers should:
+#   find_package(Hush CONFIG REQUIRED)
+#   target_link_libraries(app PRIVATE Hush::ffi)   # or Hush::core
+#
+# Imported targets:
+#   Hush::core  — the PCM engine (SilenceDetector, RingBuffer, FlowController,
+#                 Logger, StateManager). Depends on macOS CoreAudio/AudioUnit
+#                 frameworks, which are attached to the target's interface.
+#   Hush::ffi   — the extern "C" bridge. Publicly links Hush::core, so linking
+#                 Hush::ffi transitively pulls it in.
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
+include("${CMAKE_CURRENT_LIST_DIR}/HushTargets.cmake")
+
+# Convenience variables for legacy consumers.
+set(Hush_INCLUDE_DIRS "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@/hush")
+set(Hush_LIBRARIES    Hush::ffi)
+
+check_required_components(Hush)
