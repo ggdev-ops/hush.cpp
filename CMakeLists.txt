@@ -168,6 +168,12 @@ target_include_directories(hush_ffi
 if (hush_BUILD_CLI)
   add_executable(hush
     src/cli/main.cpp
+    src/cli/commands/TerminalUtils.cpp
+    src/cli/commands/StatusCommand.cpp
+    src/cli/commands/StopCommand.cpp
+    src/cli/commands/PlayCommand.cpp
+    src/cli/commands/RecordCommand.cpp
+    src/cli/commands/SilenceCommand.cpp
     src/codecs/AudioProcessor.cpp
   )
   target_link_libraries(hush PRIVATE hush_core ${FFMPEG_TARGETS})

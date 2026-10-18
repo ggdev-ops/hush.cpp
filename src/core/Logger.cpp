@@ -43,9 +43,31 @@ const char* Logger::levelToString(LogLevel level) {
     }
 }
 
+#include <unistd.h>
+
 void Logger::log(LogLevel level, const char* format, va_list args) {
     if (level <= currentLogLevel) {
-        std::cerr << "[" << levelToString(level) << "] ";
+        bool isTty = isatty(fileno(stderr));
+        switch (level) {
+            case LOG_ERROR:
+                if (isTty) {
+                    std::cerr << "\033[1;31merror:\033[0m ";
+                } else {
+                    std::cerr << "error: ";
+                }
+                break;
+            case LOG_DEBUG:
+                if (isTty) {
+                    std::cerr << "\033[2mdebug:\033[0m ";
+                } else {
+                    std::cerr << "debug: ";
+                }
+                break;
+            case LOG_INFO:
+            default:
+                // Clean modern CLI output: no redundant [INFO] prefix on every line
+                break;
+        }
         vfprintf(stderr, format, args);
         std::cerr << std::endl;
     }
